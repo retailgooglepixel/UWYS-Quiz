@@ -56,7 +56,7 @@
                 </div>
                 <p class="text-lg text-gray-600 mb-8 leading-relaxed">
                     Danke, dass du bei unserer UWYS (Use What You Sell) Online-Session dabei warst. <br>
-                    Teste jetzt dein Wissen zum neuen <strong>Pixel 10a</strong> und <strong>Gemini</strong>, gib uns dein ehrliches Feedback und sichere dir exklusiven Swag! 🎁
+                    Teste jetzt dein Wissen zum neuen <strong>Pixel 10a</strong> und <strong>Gemini</strong> und gib uns dein ehrliches Feedback!
                 </p>
                 <button onclick="showRegistration()" class="bg-pixelBlue hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:-translate-y-1 w-full sm:w-auto text-lg">
                     Jetzt starten
@@ -66,7 +66,7 @@
             <!-- Screen 1.5: Registration -->
             <div id="screen-registration" class="hidden fade-in text-left">
                 <div class="mb-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">Schritt 1 von 2</div>
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Deine Daten für den Swag 🎁</h2>
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Deine Anmeldung ✍️</h2>
                 <div class="space-y-4 mb-8">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vorname *</label>
@@ -139,7 +139,7 @@
 
     <script>
         // HIER DEINE NEUE GOOGLE APPS SCRIPT URL:
-        const GOOGLE_SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw52TN-ArEuc5BO9OpzhT1LjE1K1ez4sttqL8ktf2otq0Hj-CT3OQH7JDAEjPm3TJ-sWQ/exec';
+        const GOOGLE_SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbx-XueyGezyFt13bwzcS7ngZ8eM0gVARp47X-CyGWYt0XiE1Nrq3qzYurU_tgmfJNgIaQ/exec';
 
         // --- DATA ---
         const questions = [
@@ -196,9 +196,18 @@
                 options: ['😫', '😕', '😐', '🙂', '🤩']
             },
             {
-                id: 'q10', type: 'boolean',
+                id: 'q10', type: 'selection',
                 text: 'Hast du Interesse an einer Info-Session direkt bei dir vor Ort im Shop?',
                 options: ['Ja, sehr gerne!', 'Nein, aktuell nicht.']
+            },
+            {
+                id: 'q10b', type: 'selection',
+                text: 'Wie möchtest du dafür am besten kontaktiert werden?',
+                options: ['Telefonisch', 'Per E-Mail']
+            },
+            {
+                id: 'q10c', type: 'text',
+                text: 'Unter welcher Rufnummer können wir dich erreichen?'
             },
             {
                 id: 'q11', type: 'text',
@@ -254,16 +263,13 @@
             // Antworten für reine Quiz-Fragen robust mischen (Fisher-Yates Algorithmus)
             questions.forEach(q => {
                 if (q.type === 'quiz' && !q.shuffled) {
-                    // Erstelle ein Array mit Text und Info, ob es die richtige Antwort ist
                     let optionsWithIndex = q.options.map((text, i) => ({ text: text, isCorrect: i === q.correct }));
                     
-                    // Echtes Zufallsmischen (Fisher-Yates) statt einfacher Sortierung
                     for (let i = optionsWithIndex.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [optionsWithIndex[i], optionsWithIndex[j]] = [optionsWithIndex[j], optionsWithIndex[i]];
                     }
                     
-                    // Speichere die gemischte Reihenfolge und den neuen Index der richtigen Antwort ab
                     q.options = optionsWithIndex.map(o => o.text);
                     q.correct = optionsWithIndex.findIndex(o => o.isCorrect);
                     q.shuffled = true; 
@@ -276,22 +282,46 @@
             renderQuestion();
         }
 
+        function isQuestionRelevant(q) {
+            // Logik: Soll diese Frage angezeigt werden?
+            if (q.id === 'q10b') {
+                // Kontaktwunsch nur anzeigen, wenn Interesse an Session besteht (Antwort 0 = Ja)
+                return answers['q10'] === 0;
+            }
+            if (q.id === 'q10c') {
+                // Rufnummer nur anzeigen, wenn Interesse besteht UND "Telefonisch" (Antwort 0) gewählt wurde
+                return answers['q10'] === 0 && answers['q10b'] === 0;
+            }
+            return true;
+        }
+
         function renderQuestion() {
             const q = questions[currentIndex];
             
             // Update Header & Progress
-            questionCounter.innerText = `Frage ${currentIndex + 1} von ${questions.length}`;
+            // Berechnung der 'echten' Fragennummer für den User ist schwierig bei bedingter Logik, wir nutzen einfach die interne
+            questionCounter.innerText = `Frage`; 
             questionText.innerText = q.text;
             progressBar.style.width = `${((currentIndex) / questions.length) * 100}%`;
             
             // Buttons state
             btnPrev.style.display = currentIndex === 0 ? 'none' : 'block';
-            btnNext.innerText = currentIndex === questions.length - 1 ? 'Abschließen' : 'Weiter';
+            btnNext.innerText = currentIndex >= questions.length - 2 ? 'Abschließen' : 'Weiter'; // Grobe Schätzung für Button Text
+            
+            // Text Check für letzten Button genauer machen
+            let isLast = true;
+            for(let i = currentIndex + 1; i < questions.length; i++) {
+                if(isQuestionRelevant(questions[i])) isLast = false;
+            }
+            if(isLast) btnNext.innerText = 'Abschließen';
+            else btnNext.innerText = 'Weiter';
+
+
             btnNext.disabled = answers[q.id] === undefined || answers[q.id] === '';
 
             // Render Input based on type
             inputArea.innerHTML = '';
-            inputArea.className = 'mb-8 fade-in'; // reset classes
+            inputArea.className = 'mb-8 fade-in'; 
             
             if (q.type === 'quiz') {
                 inputArea.classList.add('space-y-3');
@@ -303,7 +333,7 @@
                     let indicator = `<div class="w-5 h-5 rounded-full border-2 mr-3 flex-shrink-0 flex items-center justify-center border-gray-300"></div>`;
 
                     if (isAnswered) {
-                        btn.disabled = true; // Sperren nach Antwort
+                        btn.disabled = true; 
                         if (index === q.correct) {
                             btnClass += 'border-green-500 bg-green-50 text-green-900 font-bold';
                             indicator = `<div class="w-5 h-5 rounded-full mr-3 flex-shrink-0 flex items-center justify-center bg-green-500 text-white text-xs">✓</div>`;
@@ -324,7 +354,7 @@
                     }
                     inputArea.appendChild(btn);
                 });
-            } else if (q.type === 'boolean') {
+            } else if (q.type === 'boolean' || q.type === 'selection') {
                 inputArea.classList.add('space-y-3');
                 q.options.forEach((opt, index) => {
                     const isSelected = answers[q.id] === index;
@@ -345,12 +375,25 @@
                     inputArea.appendChild(btn);
                 });
             } else if (q.type === 'text') {
-                const textarea = document.createElement('textarea');
-                textarea.className = 'w-full p-4 border-2 border-gray-200 rounded-xl focus:border-pixelBlue focus:ring-0 transition-colors h-32 resize-none';
-                textarea.placeholder = 'Deine Ideen, Wünsche oder Anregungen...';
-                textarea.value = answers[q.id] || '';
-                textarea.oninput = (e) => selectAnswer(q.id, e.target.value);
-                inputArea.appendChild(textarea);
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'w-full p-4 border-2 border-gray-200 rounded-xl focus:border-pixelBlue focus:ring-0 transition-colors text-lg';
+                input.placeholder = q.id === 'q10c' ? 'z.B. 0171 12345678' : 'Deine Antwort...';
+                
+                if (q.id === 'q11') {
+                    // Q11 ist ein großes Textfeld
+                    const textarea = document.createElement('textarea');
+                    textarea.className = 'w-full p-4 border-2 border-gray-200 rounded-xl focus:border-pixelBlue focus:ring-0 transition-colors h-32 resize-none';
+                    textarea.placeholder = 'Deine Ideen, Wünsche oder Anregungen...';
+                    textarea.value = answers[q.id] || '';
+                    textarea.oninput = (e) => selectAnswer(q.id, e.target.value);
+                    inputArea.appendChild(textarea);
+                } else {
+                    // Q10c ist einzeilig
+                    input.value = answers[q.id] || '';
+                    input.oninput = (e) => selectAnswer(q.id, e.target.value);
+                    inputArea.appendChild(input);
+                }
                 
                 if(answers[q.id] === undefined) selectAnswer(q.id, ''); 
             }
@@ -363,21 +406,33 @@
             answers[questionId] = value;
             btnNext.disabled = false; 
             
+            // UI neu rendern für Auswahl-Buttons
             if (q.type !== 'text') {
                 renderQuestion();
             }
         }
 
         function prevQuestion() {
-            if (currentIndex > 0) {
-                currentIndex--;
+            let prevIdx = currentIndex - 1;
+            // Rückwärts suchen bis eine relevante Frage gefunden wird
+            while(prevIdx >= 0 && !isQuestionRelevant(questions[prevIdx])) {
+                prevIdx--;
+            }
+            if (prevIdx >= 0) {
+                currentIndex = prevIdx;
                 renderQuestion();
             }
         }
 
         function nextQuestion() {
-            if (currentIndex < questions.length - 1) {
-                currentIndex++;
+            let nextIdx = currentIndex + 1;
+            // Vorwärts suchen bis eine relevante Frage gefunden wird
+            while(nextIdx < questions.length && !isQuestionRelevant(questions[nextIdx])) {
+                nextIdx++;
+            }
+
+            if (nextIdx < questions.length) {
+                currentIndex = nextIdx;
                 renderQuestion();
             } else {
                 finishQuiz();
@@ -413,17 +468,20 @@
             };
 
             questions.forEach(q => {
-                if(q.type === 'quiz' || q.type === 'boolean' || q.type === 'emoji') {
-                    exportData[q.id] = q.options[answers[q.id]] || 'Keine Antwort';
+                if(q.type === 'quiz' || q.type === 'boolean' || q.type === 'selection' || q.type === 'emoji') {
+                    // Prüfen ob die Frage überhaupt beantwortet wurde (wegen Skip Logic)
+                    if (answers[q.id] !== undefined) {
+                         exportData[q.id] = q.options[answers[q.id]];
+                    } else {
+                         exportData[q.id] = 'Übersprungen';
+                    }
                 } else {
-                    exportData[q.id] = answers[q.id] || 'Keine Antwort';
+                    exportData[q.id] = answers[q.id] || '';
                 }
             });
 
             console.log("Sende Daten an Tabelle:", exportData);
 
-            // WICHTIG: Hier wurde der Content-Type auf text/plain geändert! 
-            // Das umgeht den Google Apps Script CORS Fehler!
             fetch(GOOGLE_SHEET_WEBHOOK_URL, {
                 method: 'POST',
                 mode: 'no-cors',
