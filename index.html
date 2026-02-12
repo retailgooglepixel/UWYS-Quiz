@@ -95,7 +95,7 @@
                 
                 <div class="bg-gray-50 rounded-xl p-6 border border-gray-200 mb-8">
                     <h3 class="text-xl font-bold text-gray-800 mb-2">Dein Score: <span id="final-score" class="text-pixelBlue"></span></h3>
-                    <p class="text-gray-600 text-sm" id="score-message">Wir werten die Ergebnisse aus und melden uns bezüglich deines Swags!</p>
+                    <p class="text-gray-600 text-sm" id="score-message">Deine Antworten wurden erfolgreich übermittelt. Wir melden uns wegen deines Swags!</p>
                 </div>
 
                 <div id="onsite-message" class="hidden bg-green-50 text-green-800 p-4 rounded-xl border border-green-200 mb-8 text-left">
@@ -114,7 +114,7 @@
     </footer>
 
     <script>
-        // HIER DEINE GOOGLE APPS SCRIPT URL EINTRAGEN:
+        // HIER DEINE GOOGLE APPS SCRIPT URL:
         const GOOGLE_SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbySDOwWBsE_IOmVmj4niBz66pb_gorNmr8DjX8BA45JJwLg5EyCt_grnPKK9DiSudNBVA/exec';
 
         // --- DATA ---
@@ -200,25 +200,21 @@
 
         // --- FUNCTIONS ---
         function startQuiz() {
-            // Mische die Antworten für alle reinen Quiz-Fragen, bevor es losgeht
+            console.log("Starte Quiz & Mische Fragen...");
+            
+            // Antworten für reine Quiz-Fragen robust mischen (Zufallsprinzip)
             questions.forEach(q => {
                 if (q.type === 'quiz' && !q.shuffled) {
-                    // Wir verknüpfen den Text mit der Info, ob es die richtige Antwort ist
-                    const mappedOptions = q.options.map((opt, index) => ({
-                        text: opt,
-                        isCorrect: index === q.correct
-                    }));
+                    // Erstelle ein Array mit Text und Info, ob es die richtige Antwort ist
+                    let optionsWithIndex = q.options.map((text, i) => ({ text: text, isCorrect: i === q.correct }));
                     
-                    // Zufälliges Mischen (Fisher-Yates Algorithmus)
-                    for (let i = mappedOptions.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [mappedOptions[i], mappedOptions[j]] = [mappedOptions[j], mappedOptions[i]];
-                    }
+                    // Zufällige Sortierung
+                    optionsWithIndex.sort(() => Math.random() - 0.5);
                     
-                    // Die gemischten Antworten und den neuen Index der richtigen Antwort zurückschreiben
-                    q.options = mappedOptions.map(o => o.text);
-                    q.correct = mappedOptions.findIndex(o => o.isCorrect);
-                    q.shuffled = true; // Verhindert erneutes Mischen, falls der Nutzer zurück und wieder vor klickt
+                    // Speichere die gemischte Reihenfolge und den neuen Index der richtigen Antwort ab
+                    q.options = optionsWithIndex.map(o => o.text);
+                    q.correct = optionsWithIndex.findIndex(o => o.isCorrect);
+                    q.shuffled = true; 
                 }
             });
 
@@ -257,19 +253,15 @@
                     if (isAnswered) {
                         btn.disabled = true; // Sperren nach Antwort
                         if (index === q.correct) {
-                            // Richtig (Immer Grün anzeigen, wenn beantwortet)
                             btnClass += 'border-green-500 bg-green-50 text-green-900 font-bold';
                             indicator = `<div class="w-5 h-5 rounded-full mr-3 flex-shrink-0 flex items-center justify-center bg-green-500 text-white text-xs">✓</div>`;
                         } else if (index === answers[q.id]) {
-                            // Falsch ausgewählt (Rot anzeigen)
                             btnClass += 'border-red-500 bg-red-50 text-red-900';
                             indicator = `<div class="w-5 h-5 rounded-full mr-3 flex-shrink-0 flex items-center justify-center bg-red-500 text-white text-xs">✕</div>`;
                         } else {
-                            // Nicht ausgewählt, nicht richtig (Ausgegraut)
                             btnClass += 'border-gray-200 bg-gray-50 text-gray-400 opacity-60';
                         }
                     } else {
-                        // Noch nicht beantwortet
                         btnClass += 'border-gray-200 bg-white text-gray-700 hover:border-blue-300';
                     }
 
@@ -313,14 +305,12 @@
         }
 
         function selectAnswer(questionId, value) {
-            // Wenn es eine Quizfrage ist und schon beantwortet wurde, nichts tun (gesperrt)
             const q = questions.find(q => q.id === questionId);
             if (q.type === 'quiz' && answers[questionId] !== undefined) return;
 
             answers[questionId] = value;
-            btnNext.disabled = false; // Weiter-Button freischalten
+            btnNext.disabled = false; 
             
-            // UI neu rendern, um Auswahl/Farben anzuzeigen
             if (q.type !== 'text') {
                 renderQuestion();
             }
@@ -347,7 +337,6 @@
             progressContainer.classList.add('hidden');
             screenOutro.classList.remove('hidden');
             
-            // Punkte berechnen
             let correctCount = 0;
             let totalQuiz = 0;
             
@@ -364,7 +353,6 @@
                 document.getElementById('onsite-message').classList.remove('hidden');
             }
 
-            // Daten aufbereiten (Texte statt Zahlen für die Tabelle)
             const exportData = {
                 score: `${correctCount} von ${totalQuiz}`
             };
@@ -377,19 +365,20 @@
                 }
             });
 
-            console.log("Sende folgende Daten an Google Sheets:", exportData);
+            console.log("Sende Daten an Tabelle:", exportData);
 
-            // Daten an Google Sheets senden
-            if(GOOGLE_SHEET_WEBHOOK_URL !== 'DEINE_WEBHOOK_URL_HIER') {
-                fetch(GOOGLE_SHEET_WEBHOOK_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // Wichtig für Google Apps Script
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(exportData)
-                }).catch(error => console.error('Fehler beim Senden:', error));
-            }
+            // WICHTIG: Hier wurde der Content-Type auf text/plain geändert! 
+            // Das umgeht den Google Apps Script CORS Fehler!
+            fetch(GOOGLE_SHEET_WEBHOOK_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8', 
+                },
+                body: JSON.stringify(exportData)
+            }).then(() => {
+                console.log("Senden abgeschlossen.");
+            }).catch(error => console.error('Fehler beim Senden:', error));
         }
     </script>
 </body>
