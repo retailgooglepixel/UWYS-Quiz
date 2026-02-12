@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UWYS Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pixelBlue: '#4285F4',
+                        pixelRed: '#EA4335',
+                        pixelBg: '#F8F9FA'
+                    },
+                    fontFamily: {
+                        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .emoji-btn { transition: all 0.2s ease; filter: grayscale(100%); opacity: 0.6; }
+        .emoji-btn:hover { transform: scale(1.15); filter: grayscale(0%); opacity: 1; }
+        .emoji-btn.selected { transform: scale(1.2); filter: grayscale(0%); opacity: 1; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 to-blue-100 min-h-screen font-sans text-gray-800 flex flex-col items-center p-4 sm:p-8">
+
+    <!-- Header -->
+    <header class="w-full max-w-2xl text-center mb-8">
+        <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
+            UWYS <span class="text-pixelBlue">Quiz</span>
+        </h1>
+        <p class="text-xl font-medium text-gray-600">Use What You Sell</p>
+    </header>
+
+    <!-- Main Card -->
+    <main class="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden fade-in relative" id="app-card">
+        
+        <!-- Progress Bar -->
+        <div id="progress-container" class="w-full bg-gray-200 h-2 hidden">
+            <div id="progress-bar" class="bg-pixelBlue h-2 transition-all duration-300 w-0"></div>
+        </div>
+
+        <div class="p-6 sm:p-10">
+            <!-- Screen 1: Intro -->
+            <div id="screen-intro" class="text-center fade-in">
+                <div class="bg-blue-50 text-pixelBlue p-4 rounded-xl mb-6 inline-block">
+                    <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path></svg>
+                    <h2 class="text-xl font-bold">Willkommen zurück!</h2>
+                </div>
+                <p class="text-lg text-gray-600 mb-8 leading-relaxed">
+                    Danke, dass du bei unserer UWYS (Use What You Sell) Online-Session dabei warst. <br>
+                    Teste jetzt dein Wissen zum neuen <strong>Pixel 10a</strong> und <strong>Gemini</strong>, gib uns dein ehrliches Feedback und sichere dir exklusiven Swag! 🎁
+                </p>
+                <button onclick="startQuiz()" class="bg-pixelBlue hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:-translate-y-1 w-full sm:w-auto text-lg">
+                    Jetzt starten
+                </button>
+            </div>
+
+            <!-- Screen 2: Question -->
+            <div id="screen-question" class="hidden fade-in">
+                <div class="mb-2 text-sm font-semibold text-gray-500 uppercase tracking-wide" id="question-counter">Frage 1 von 11</div>
+                <h2 id="question-text" class="text-2xl font-bold text-gray-800 mb-6 leading-tight">Hier steht die Frage?</h2>
+                
+                <!-- Dynamic Input Area -->
+                <div id="input-area" class="space-y-3 mb-8">
+                    <!-- Options injected via JS -->
+                </div>
+
+                <!-- Navigation -->
+                <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-100">
+                    <button id="btn-prev" onclick="prevQuestion()" class="text-gray-500 hover:text-gray-800 font-medium px-4 py-2 hidden">
+                        &larr; Zurück
+                    </button>
+                    <div class="flex-grow"></div>
+                    <button id="btn-next" onclick="nextQuestion()" disabled class="bg-pixelBlue hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-full transition-colors">
+                        Weiter
+                    </button>
+                </div>
+            </div>
+
+            <!-- Screen 3: Outro / Result -->
+            <div id="screen-outro" class="hidden text-center fade-in">
+                <div class="text-5xl mb-4">🎉</div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Geschafft!</h2>
+                <p class="text-lg text-gray-600 mb-6">
+                    Vielen Dank für dein Feedback und deinen Einsatz als Hardware Hero!
+                </p>
+                
+                <div class="bg-gray-50 rounded-xl p-6 border border-gray-200 mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">Dein Score: <span id="final-score" class="text-pixelBlue"></span></h3>
+                    <p class="text-gray-600 text-sm" id="score-message">Wir werten die Ergebnisse aus und melden uns bezüglich deines Swags!</p>
+                </div>
+
+                <div id="onsite-message" class="hidden bg-green-50 text-green-800 p-4 rounded-xl border border-green-200 mb-8 text-left">
+                    <strong>Toll!</strong> Du hast Interesse an einer Vor-Ort-Session. Dein TSM wird sich in Kürze zwecks Terminvereinbarung bei dir melden.
+                </div>
+
+                <button onclick="location.reload()" class="text-pixelBlue font-semibold hover:underline">
+                    Quiz neu starten
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-12 text-center text-gray-500 text-sm pb-8">
+        &copy; 2026 Google | Vertraulich und geschützt | Nur für internes Training
+    </footer>
+
+    <script>
+        // HIER DEINE GOOGLE APPS SCRIPT URL EINTRAGEN:
+        const GOOGLE_SHEET_WEBHOOK_URL = 'DEINE_WEBHOOK_URL_HIER';
+
+        // --- DATA ---
+        const questions = [
+            {
+                id: 'q1', type: 'quiz',
+                text: 'Das Pixel 10a kommt mit einem frischen neuen Look. Was ist das Besondere am Kameradesign?',
+                options: ['Es hat drei Linsen.', 'Es ist bündig im Gehäuse integriert – kein Kamerabuckel mehr!', 'Es ist quadratisch angeordnet.'],
+                correct: 1
+            },
+            {
+                id: 'q2', type: 'quiz',
+                text: 'Welcher Google-Prozessor sorgt im Pixel 10a für die nötige Power und ermöglicht die KI-Funktionen?',
+                options: ['Snapdragon 8 Gen 3', 'Google Tensor G4', 'Google Tensor G3'],
+                correct: 1
+            },
+            {
+                id: 'q3', type: 'quiz',
+                text: 'Gemini Nano Banana hilft dir, kreativ zu werden. Was kannst du damit tun?',
+                options: ['Bananen bestellen im Google Store.', 'Personalisierte KI-Bilder aus deinen eigenen Ideen erstellen.', 'Automatisch Musik komponieren.'],
+                correct: 1
+            },
+            {
+                id: 'q4', type: 'quiz',
+                text: 'Neu in der A-Serie ist der "Makrofokus". Wofür ist dieser besonders gut geeignet?',
+                options: ['Für weite Landschaftsaufnahmen.', 'Um kleinste Details (z.B. Tautropfen) gestochen scharf festzuhalten.', 'Für Selfies bei schlechtem Licht.'],
+                correct: 1
+            },
+            {
+                id: 'q5', type: 'quiz',
+                text: 'Du möchtest ein Gruppenfoto machen und selbst mit drauf sein. Welches Feature löst dieses Problem?',
+                options: ['Magischer Radierer', 'Mich hinzufügen (Add Me)', 'Scharfzeichner'],
+                correct: 1
+            },
+            {
+                id: 'q6', type: 'quiz',
+                text: 'Wie lange hält der Akku des Pixel 10a im Extrem-Energiesparmodus maximal durch?',
+                options: ['Bis zu 24 Stunden', 'Bis zu 72 Stunden', 'Bis zu 120 Stunden'],
+                correct: 2
+            },
+            {
+                id: 'q7', type: 'quiz',
+                text: 'Mit welcher Funktion kannst du Dinge direkt auf deinem Bildschirm suchen, ohne die App zu wechseln?',
+                options: ['Tap to Find', 'Circle to Search', 'Swipe to Google'],
+                correct: 1
+            },
+            {
+                id: 'q8', type: 'emoji',
+                text: 'Feedback: Wie findest du den Ansatz "Use What You Sell" (UWYS) generell?',
+                options: ['😫', '😕', '😐', '🙂', '🤩']
+            },
+            {
+                id: 'q9', type: 'emoji',
+                text: 'Feedback: Wie findest du unsere Online-Veranstaltungen / Info-Sessions?',
+                options: ['😫', '😕', '😐', '🙂', '🤩']
+            },
+            {
+                id: 'q10', type: 'boolean',
+                text: 'Hast du Interesse an einer Info-Session direkt bei dir vor Ort im Shop?',
+                options: ['Ja, sehr gerne!', 'Nein, aktuell nicht.']
+            },
+            {
+                id: 'q11', type: 'text',
+                text: 'Abschlussfrage: Was können wir noch für dich tun, um dich dabei zu unterstützen, das Pixel besser zu vermarkten?'
+            }
+        ];
+
+        // --- STATE ---
+        let currentIndex = 0;
+        let answers = {};
+        
+        // --- DOM ELEMENTS ---
+        const screenIntro = document.getElementById('screen-intro');
+        const screenQuestion = document.getElementById('screen-question');
+        const screenOutro = document.getElementById('screen-outro');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const questionCounter = document.getElementById('question-counter');
+        const questionText = document.getElementById('question-text');
+        const inputArea = document.getElementById('input-area');
+        const btnNext = document.getElementById('btn-next');
+        const btnPrev = document.getElementById('btn-prev');
+
+        // --- FUNCTIONS ---
+        function startQuiz() {
+            screenIntro.classList.add('hidden');
+            screenQuestion.classList.remove('hidden');
+            progressContainer.classList.remove('hidden');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = questions[currentIndex];
+            
+            // Update Header & Progress
+            questionCounter.innerText = `Frage ${currentIndex + 1} von ${questions.length}`;
+            questionText.innerText = q.text;
+            progressBar.style.width = `${((currentIndex) / questions.length) * 100}%`;
+            
+            // Buttons state
+            btnPrev.style.display = currentIndex === 0 ? 'none' : 'block';
+            btnNext.innerText = currentIndex === questions.length - 1 ? 'Abschließen' : 'Weiter';
+            btnNext.disabled = answers[q.id] === undefined || answers[q.id] === '';
+
+            // Render Input based on type
+            inputArea.innerHTML = '';
+            inputArea.className = 'mb-8 fade-in'; // reset classes
+            
+            if (q.type === 'quiz') {
+                inputArea.classList.add('space-y-3');
+                const isAnswered = answers[q.id] !== undefined;
+
+                q.options.forEach((opt, index) => {
+                    const btn = document.createElement('button');
+                    let btnClass = 'w-full text-left p-4 rounded-xl border-2 transition-all ';
+                    let indicator = `<div class="w-5 h-5 rounded-full border-2 mr-3 flex-shrink-0 flex items-center justify-center border-gray-300"></div>`;
+
+                    if (isAnswered) {
+                        btn.disabled = true; // Sperren nach Antwort
+                        if (index === q.correct) {
+                            // Richtig (Immer Grün anzeigen, wenn beantwortet)
+                            btnClass += 'border-green-500 bg-green-50 text-green-900 font-bold';
+                            indicator = `<div class="w-5 h-5 rounded-full mr-3 flex-shrink-0 flex items-center justify-center bg-green-500 text-white text-xs">✓</div>`;
+                        } else if (index === answers[q.id]) {
+                            // Falsch ausgewählt (Rot anzeigen)
+                            btnClass += 'border-red-500 bg-red-50 text-red-900';
+                            indicator = `<div class="w-5 h-5 rounded-full mr-3 flex-shrink-0 flex items-center justify-center bg-red-500 text-white text-xs">✕</div>`;
+                        } else {
+                            // Nicht ausgewählt, nicht richtig (Ausgegraut)
+                            btnClass += 'border-gray-200 bg-gray-50 text-gray-400 opacity-60';
+                        }
+                    } else {
+                        // Noch nicht beantwortet
+                        btnClass += 'border-gray-200 bg-white text-gray-700 hover:border-blue-300';
+                    }
+
+                    btn.className = btnClass;
+                    btn.innerHTML = `<div class="flex items-center">${indicator} ${opt}</div>`;
+                    if (!isAnswered) {
+                        btn.onclick = () => selectAnswer(q.id, index);
+                    }
+                    inputArea.appendChild(btn);
+                });
+            } else if (q.type === 'boolean') {
+                inputArea.classList.add('space-y-3');
+                q.options.forEach((opt, index) => {
+                    const isSelected = answers[q.id] === index;
+                    const btn = document.createElement('button');
+                    btn.className = `w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected ? 'border-pixelBlue bg-blue-50 text-pixelBlue font-bold' : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300'}`;
+                    btn.innerHTML = `<div class="flex items-center"><div class="w-5 h-5 rounded-full border-2 mr-3 flex-shrink-0 flex items-center justify-center ${isSelected ? 'border-pixelBlue' : 'border-gray-300'}"><div class="w-2.5 h-2.5 rounded-full bg-pixelBlue ${isSelected ? 'block' : 'hidden'}"></div></div> ${opt}</div>`;
+                    btn.onclick = () => selectAnswer(q.id, index);
+                    inputArea.appendChild(btn);
+                });
+            } else if (q.type === 'emoji') {
+                inputArea.classList.add('flex', 'justify-between', 'items-center', 'px-2', 'sm:px-8', 'py-4');
+                q.options.forEach((emoji, index) => {
+                    const isSelected = answers[q.id] === index;
+                    const btn = document.createElement('button');
+                    btn.className = `text-5xl sm:text-6xl emoji-btn ${isSelected ? 'selected' : ''}`;
+                    btn.innerText = emoji;
+                    btn.onclick = () => selectAnswer(q.id, index);
+                    inputArea.appendChild(btn);
+                });
+            } else if (q.type === 'text') {
+                const textarea = document.createElement('textarea');
+                textarea.className = 'w-full p-4 border-2 border-gray-200 rounded-xl focus:border-pixelBlue focus:ring-0 transition-colors h-32 resize-none';
+                textarea.placeholder = 'Deine Ideen, Wünsche oder Anregungen...';
+                textarea.value = answers[q.id] || '';
+                textarea.oninput = (e) => selectAnswer(q.id, e.target.value);
+                inputArea.appendChild(textarea);
+                
+                if(answers[q.id] === undefined) selectAnswer(q.id, ''); 
+            }
+        }
+
+        function selectAnswer(questionId, value) {
+            // Wenn es eine Quizfrage ist und schon beantwortet wurde, nichts tun (gesperrt)
+            const q = questions.find(q => q.id === questionId);
+            if (q.type === 'quiz' && answers[questionId] !== undefined) return;
+
+            answers[questionId] = value;
+            btnNext.disabled = false; // Weiter-Button freischalten
+            
+            // UI neu rendern, um Auswahl/Farben anzuzeigen
+            if (q.type !== 'text') {
+                renderQuestion();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                renderQuestion();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentIndex < questions.length - 1) {
+                currentIndex++;
+                renderQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function finishQuiz() {
+            screenQuestion.classList.add('hidden');
+            progressContainer.classList.add('hidden');
+            screenOutro.classList.remove('hidden');
+            
+            // Punkte berechnen
+            let correctCount = 0;
+            let totalQuiz = 0;
+            
+            questions.forEach(q => {
+                if(q.type === 'quiz') {
+                    totalQuiz++;
+                    if(answers[q.id] === q.correct) correctCount++;
+                }
+            });
+
+            document.getElementById('final-score').innerText = `${correctCount} von ${totalQuiz} Punkten`;
+
+            if (answers['q10'] === 0) {
+                document.getElementById('onsite-message').classList.remove('hidden');
+            }
+
+            // Daten aufbereiten (Texte statt Zahlen für die Tabelle)
+            const exportData = {
+                score: `${correctCount} von ${totalQuiz}`
+            };
+
+            questions.forEach(q => {
+                if(q.type === 'quiz' || q.type === 'boolean' || q.type === 'emoji') {
+                    exportData[q.id] = q.options[answers[q.id]] || 'Keine Antwort';
+                } else {
+                    exportData[q.id] = answers[q.id] || 'Keine Antwort';
+                }
+            });
+
+            console.log("Sende folgende Daten an Google Sheets:", exportData);
+
+            // Daten an Google Sheets senden
+            if(GOOGLE_SHEET_WEBHOOK_URL !== 'DEINE_WEBHOOK_URL_HIER') {
+                fetch(GOOGLE_SHEET_WEBHOOK_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Wichtig für Google Apps Script
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(exportData)
+                }).catch(error => console.error('Fehler beim Senden:', error));
+            }
+        }
+    </script>
+</body>
+</html>
