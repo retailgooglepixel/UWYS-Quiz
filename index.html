@@ -115,7 +115,7 @@
 
     <script>
         // HIER DEINE GOOGLE APPS SCRIPT URL EINTRAGEN:
-        const GOOGLE_SHEET_WEBHOOK_URL = 'DEINE_WEBHOOK_URL_HIER';
+        const GOOGLE_SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbySDOwWBsE_IOmVmj4niBz66pb_gorNmr8DjX8BA45JJwLg5EyCt_grnPKK9DiSudNBVA/exec';
 
         // --- DATA ---
         const questions = [
@@ -200,6 +200,28 @@
 
         // --- FUNCTIONS ---
         function startQuiz() {
+            // Mische die Antworten für alle reinen Quiz-Fragen, bevor es losgeht
+            questions.forEach(q => {
+                if (q.type === 'quiz' && !q.shuffled) {
+                    // Wir verknüpfen den Text mit der Info, ob es die richtige Antwort ist
+                    const mappedOptions = q.options.map((opt, index) => ({
+                        text: opt,
+                        isCorrect: index === q.correct
+                    }));
+                    
+                    // Zufälliges Mischen (Fisher-Yates Algorithmus)
+                    for (let i = mappedOptions.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [mappedOptions[i], mappedOptions[j]] = [mappedOptions[j], mappedOptions[i]];
+                    }
+                    
+                    // Die gemischten Antworten und den neuen Index der richtigen Antwort zurückschreiben
+                    q.options = mappedOptions.map(o => o.text);
+                    q.correct = mappedOptions.findIndex(o => o.isCorrect);
+                    q.shuffled = true; // Verhindert erneutes Mischen, falls der Nutzer zurück und wieder vor klickt
+                }
+            });
+
             screenIntro.classList.add('hidden');
             screenQuestion.classList.remove('hidden');
             progressContainer.classList.remove('hidden');
